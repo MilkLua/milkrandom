@@ -1,3 +1,4 @@
+// Package pcg32 implements the PCG-32 random number generator.
 package pcg32
 
 import (

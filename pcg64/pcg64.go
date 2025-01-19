@@ -1,3 +1,4 @@
+// Package pcg64 implements the PCG-64 random number generator.
 package pcg64
 
 import (
