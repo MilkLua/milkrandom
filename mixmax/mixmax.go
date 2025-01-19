@@ -120,9 +120,12 @@ func (m *MIXMAX) Seed(seed uint64) {
 	}
 	m.state[0] = seed
 	for i := 1; i < N; i++ {
-		m.state[i] = (m.state[i-1]*6364136223846793005 + 1) & MOD
+		m.state[i] = (m.state[i-1]*6364136223846793005 + 1442695040888963407) & MOD
 	}
-	m.counter = 0
+	for i := 0; i < 10; i++ {
+		m.iterate()
+	}
+	m.counter = N
 }
 
 // go:inline
@@ -152,14 +155,23 @@ func (m *SafeMIXMAX) Uint64() uint64 {
 
 // iterate advances the internal state of the generator.
 func (m *MIXMAX) iterate() {
-	var t uint64
-	for i := 0; i < N; i++ {
-		t = m.state[(i+1)%N]
-		m.state[i] = (m.state[i] + t) & MOD
-		if m.state[i] < t {
-			m.state[i]++
+	var t, v uint64
+	for i := 0; i < N-1; i++ {
+		v = m.state[i]
+		t = m.state[i+1]
+		v = (v + t) & MOD
+		if v < t {
+			v++
 		}
+		m.state[i] = v
 	}
+	v = m.state[N-1]
+	t = m.state[0]
+	v = (v + t) & MOD
+	if v < t {
+		v++
+	}
+	m.state[N-1] = v
 	m.counter = N
 }
 
