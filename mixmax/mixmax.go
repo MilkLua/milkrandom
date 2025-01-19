@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	N    = 240                // Default matrix size
-	MOD  = 0xfffffffffffffffe // 2^61 - 2
+	N    = 240               // Default matrix size
+	MOD  = 0xfffffffffffffff // 2^61 - 1
 	TWOM = 1.0 / (1 << 61)
 )
 
@@ -31,7 +31,7 @@ func New() *MIXMAX {
 	m := &MIXMAX{}
 	m.Seed(uint64(time.Now().UnixNano()))
 	// "Warm up" the generator
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		m.Uint64()
 	}
 	return m
@@ -42,7 +42,7 @@ func NewSafe() *SafeMIXMAX {
 	m := &SafeMIXMAX{}
 	m.Seed(uint64(time.Now().UnixNano()))
 	// "Warm up" the generator
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		m.Uint64()
 	}
 	return m
@@ -118,11 +118,11 @@ func (m *MIXMAX) Seed(seed uint64) {
 	if seed == 0 {
 		seed = uint64(time.Now().UnixNano())
 	}
-	m.state[0] = seed
+	m.state[0] = seed % MOD
 	for i := 1; i < N; i++ {
-		m.state[i] = (m.state[i-1]*6364136223846793005 + 1442695040888963407) & MOD
+		m.state[i] = (m.state[i-1]*6364136223846793005 + 1442695040888963407) % MOD
 	}
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		m.iterate()
 	}
 	m.counter = N
@@ -159,17 +159,23 @@ func (m *MIXMAX) iterate() {
 	for i := 0; i < N-1; i++ {
 		v = m.state[i]
 		t = m.state[i+1]
-		v = (v + t) & MOD
+		v = (v + t) % MOD
 		if v < t {
 			v++
+			if v == MOD {
+				v = 0
+			}
 		}
 		m.state[i] = v
 	}
 	v = m.state[N-1]
 	t = m.state[0]
-	v = (v + t) & MOD
+	v = (v + t) % MOD
 	if v < t {
 		v++
+		if v == MOD {
+			v = 0
+		}
 	}
 	m.state[N-1] = v
 	m.counter = N
@@ -179,7 +185,7 @@ func (m *MIXMAX) iterate() {
 //
 //go:inline
 func (m *MIXMAX) Float64() float64 {
-	return float64(m.Uint64()) * TWOM
+	return float64(m.Uint64()>>3) / (1 << 61)
 }
 
 // Float64 generates a random float64 in the range [0.0, 1.0), which is safe for concurrent use.
